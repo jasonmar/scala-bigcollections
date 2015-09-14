@@ -1,0 +1,165 @@
+/*
+ * Copyright (C) 2015 Jason Mar
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package com.jasonmar
+
+class BigBitMap (_length: Long, initialValue: Byte = 0, _children: Array[BitMap] = null) extends BigCollection {
+
+  override val length = _length
+
+  override val children: Array[BitMap] = {
+    if (_children != null) {
+      // Allow construction from preallocated sub-arrays
+      if (_children.length == nChildren) {
+        // TODO add size validation
+        _children
+      } else {
+        throw new IllegalArgumentException
+      }
+    } else {
+      val a = new Array[BitMap](nChildren)
+      var i = 0
+      while (i < nChildren - 1) {
+        a(i) = new BitMap(Int.MaxValue, initialValue)
+        i += 1
+      }
+      if (length > Int.MaxValue) {
+        val size = (length % Int.MaxValue).toInt
+        a(i) = new BitMap(size, initialValue)
+      } else {
+        a(i) = new BitMap(length, initialValue)
+      }
+
+      a
+    }
+  }
+
+  def get(i: Long): Boolean = {
+    val id0: Int = getChildId(i)
+    val id1: Long = getChildInternalId(i)
+    children(id0).get(id1)
+  }
+
+  def set(i: Long): Unit = {
+    val id0: Int = getChildId(i)
+    val id1: Long = getChildInternalId(i)
+    children(id0).set(id1)
+  }
+
+  def unset(i: Long): Unit = {
+    val id0: Int = getChildId(i)
+    val id1: Long = getChildInternalId(i)
+    children(id0).unset(id1)
+  }
+
+  def scard: Long = {
+    var bitMapId = 0
+    var c: Long = 0L
+    while (bitMapId < nChildren) {
+      c += children(bitMapId).scard
+      bitMapId += 1
+    }
+    c
+  }
+
+  def flip(): Unit = {
+    var bitMapId = 0
+    while (bitMapId < nChildren) {
+      children(bitMapId).flip()
+      bitMapId += 1
+    }
+  }
+
+  def clear(): Unit = {
+    var bitMapId = 0
+    while (bitMapId < nChildren) {
+      children(bitMapId).clear()
+      bitMapId += 1
+    }
+  }
+
+  def &= (x: BigBitMap): Unit = {
+    compareSize(x)
+    var i = 0
+    while (i < nChildren) {
+      children(i) &= x.children(i)
+      i += 1
+    }
+  }
+
+  def ^= (x: BigBitMap): Unit = {
+    compareSize(x)
+    var i = 0
+    while (i < nChildren) {
+      children(i) ^= x.children(i)
+      i += 1
+    }
+  }
+
+  def |= (x: BigBitMap): Unit = {
+    compareSize(x)
+    var i = 0
+    while (i < nChildren) {
+      children(i) |= x.children(i)
+      i += 1
+    }
+  }
+
+  def & (x: BigBitMap): BigBitMap = {
+    compareSize(x)
+    val b = clone
+    var i = 0
+    while (i < nChildren) {
+      b.children(i) &= x.children(i)
+      i += 1
+    }
+    b
+  }
+
+  def ^ (x: BigBitMap): BigBitMap = {
+    compareSize(x)
+    val b = clone
+    var i = 0
+    while (i < nChildren) {
+      b.children(i) ^= x.children(i)
+      i += 1
+    }
+    b
+  }
+
+  def | (x: BigBitMap): BigBitMap = {
+    compareSize(x)
+    val b = clone
+    var i = 0
+    while (i < nChildren) {
+      b.children(i) |= x.children(i)
+      i += 1
+    }
+    b
+  }
+
+  override def clone: BigBitMap = {
+    val a = new Array[BitMap](children.length)
+    var i = 0
+    while (i < a.length) {
+      a(i) = children(i).clone
+      i += 1
+    }
+    new BigBitMap(length, _children = a)
+  }
+
+}
