@@ -25,7 +25,9 @@ trait BigCollection {
 
   val childSize: Int = 1073741824 // 2 ^ 30 by default
 
-  final val nChildren = getChildId(length - 1) + 1
+  final val nChildren: Int = getChildId(length - 1) + 1
+
+  final val isSingleArray: Boolean = nChildren == 1
 
   final val powerOf2: Option[Int] = {
     if ((childSize & (childSize - 1)) == 0) {
@@ -43,7 +45,9 @@ trait BigCollection {
     if (i < 0) throw new ArrayIndexOutOfBoundsException
     else if (i >= length) throw new ArrayIndexOutOfBoundsException
 
-    if (powerOf2.nonEmpty) {
+    if (isSingleArray) {
+      0
+    } else if (powerOf2.nonEmpty) {
       (i >> powerOf2.get).toInt
     } else {
       (i / childSize).toInt
@@ -51,7 +55,7 @@ trait BigCollection {
   }
 
   final def getChildInternalId(i: Long): Int = {
-    if (i < childSize) {
+    if (isSingleArray) {
       i.toInt
     } else {
       (i % childSize).toInt
@@ -65,8 +69,8 @@ trait BigCollection {
   }
   
   def verifyChildSizes(childLengths: IndexedSeq[Int]): Unit = {
-    if (length <= childSize) {
-      assert(childLengths(0) == length)
+    if (isSingleArray) {
+      assert(childLengths.head == length)
     } else {
       for (i <- 0 to nChildren - 2) {
         assert(childLengths(i) == childSize)
