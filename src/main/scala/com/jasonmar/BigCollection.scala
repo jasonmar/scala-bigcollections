@@ -20,32 +20,58 @@ package com.jasonmar
 trait BigCollection {
   
   val length: Long
-
-  val nChildren = getChildId(length - 1) + 1
   
   val children: Any
 
-  def getChildId(i: Long): Int = {
-    (i / Int.MaxValue.toLong).toInt
-  }
+  val childSize: Int = 1073741824 // 2 ^ 30 by default
 
-  def getChildInternalId(i: Long): Int = {
-    if (i < Int.MaxValue.toLong) {
-      i.toInt
+  final val nChildren = getChildId(length - 1) + 1
+
+  final val powerOf2: Option[Int] = {
+    if ((childSize & (childSize - 1)) == 0) {
+      var exp = 1
+      while ((1L << exp) != childSize && exp < 31) {
+        exp += 1
+      }
+      Some(exp)
     } else {
-      (i % Int.MaxValue.toLong).toInt
+      None
     }
   }
 
-  def checkBounds(i: Long): Unit = {
-    // This is not called because our BitMap array and each BitMap will perform its own check
-    if (i >= length) throw new ArrayIndexOutOfBoundsException
-    else if (i < 0L) throw new ArrayIndexOutOfBoundsException
+  final def getChildId(i: Long): Int = {
+    if (i < 0) throw new ArrayIndexOutOfBoundsException
+    else if (i >= length) throw new ArrayIndexOutOfBoundsException
+
+    if (powerOf2.nonEmpty) {
+      (i >> powerOf2.get).toInt
+    } else {
+      (i / childSize).toInt
+    }
+  }
+
+  final def getChildInternalId(i: Long): Int = {
+    if (i < childSize) {
+      i.toInt
+    } else {
+      (i % childSize).toInt
+    }
   }
 
   def compareSize(x: BigCollection): Unit = {
     if (length != x.length) {
       throw new ArrayIndexOutOfBoundsException
+    }
+  }
+  
+  def verifyChildSizes(childLengths: IndexedSeq[Int]): Unit = {
+    if (length <= childSize) {
+      assert(childLengths(0) == length)
+    } else {
+      for (i <- 0 to nChildren - 2) {
+        assert(childLengths(i) == childSize)
+      }
+      assert(childLengths(nChildren - 1) == length % childSize)
     }
   }
 

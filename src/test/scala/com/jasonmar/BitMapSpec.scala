@@ -105,37 +105,34 @@ class BitMapSpec extends UnitSpec {
 
   }
 
-  it should "create a byte array of correct size for a given bit count" in {
+  it should "create a byte array of correct size for a an invalid index" in {
     val n = 32
     val bitMap = new BitMap(n)
 
-    bitMap.getByteCount(1)  should be (1)
-    bitMap.getByteCount(2)  should be (1)
+    bitMap.getChildId(0) should be (0)
+    bitMap.getChildId(7) should be (0)
+    bitMap.getChildId(8) should be (1)
 
     var x = 1
     while (x < 100) {
-      bitMap.getByteCount(x * 8L - 1) should be (x)
-      bitMap.getByteCount(x * 8L) should be (x)
-      bitMap.getByteCount(x * 8L + 1) should be (x + 1)
+      bitMap.getChildId(x * bitMap.childSize - 1) should be (x)
+      bitMap.getChildId(x * bitMap.childSize) should be (x)
+      bitMap.getChildId(x * bitMap.childSize + 1) should be (x + 1)
       x += 1
     }
 
   }
 
-  it should "throw ArrayIndexOutOfBoundsException for an invalid bit count" in {
+  it should "throw ArrayIndexOutOfBoundsException for an invalid index" in {
     val n = 32
     val bitMap = new BitMap(n)
 
-    a [IllegalArgumentException] should be thrownBy {
-      bitMap.getByteCount(-1)
+    a [ArrayIndexOutOfBoundsException] should be thrownBy {
+      bitMap.getChildId(-1)
     }
 
-    a [IllegalArgumentException] should be thrownBy {
-      bitMap.getByteCount(0)
-    }
-
-    a [IllegalArgumentException] should be thrownBy {
-      bitMap.getByteCount(Int.MaxValue * 8L + 1L)
+    a [ArrayIndexOutOfBoundsException] should be thrownBy {
+      bitMap.getChildId(32)
     }
 
   }

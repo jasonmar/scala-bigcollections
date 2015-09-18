@@ -35,7 +35,7 @@ object ByteUtil {
     */
   def getByteBuffer(n: Int, initialValue: Byte = 0): ByteBuffer = {
     val a = ByteBuffer.allocate(n)
-    while (a.hasRemaining) {
+    for (i <- 1 to n){
       a.put(initialValue)
     }
     a

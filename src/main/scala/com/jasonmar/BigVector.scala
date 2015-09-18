@@ -21,29 +21,32 @@ class BigVector (_length: Long, _children: IndexedSeq[Array[Double]] = null) ext
 
   override val length = _length
 
-  def getChildren: IndexedSeq[Array[Double]] = {
+  override val children: IndexedSeq[Array[Double]] = {
     if (_children != null) {
-      if (_children.length == nChildren) _children
-      else throw new IllegalArgumentException
-    } else {
-      val a = new Array[Array[Double]](nChildren)
-      var i = 0
-      while (i < nChildren - 1) {
-        a(i) = new Array[Double](Int.MaxValue)
-        i += 1
-      }
-      if (length > Int.MaxValue) {
-        val size = (length % Int.MaxValue).toInt
-        a(i) = new Array[Double](size)
+      if (_children.length == nChildren) {
+        verifyChildSizes(_children.map{_.length})
+        _children
       } else {
-        a(i) = new Array[Double](length.toInt)
+        throw new IllegalArgumentException
       }
+    } else {
 
+      val a = new Array[Array[Double]](nChildren)
+
+      if (length <= childSize) {
+        // Only need one Array
+        a(0) = new Array[Double](length.toInt)
+      } else {
+        for (i <- 0 to nChildren - 2) {
+          // Allocate full size Arrays
+          a(i) = new Array[Double](childSize.toInt)
+        }
+        // Last Array may be smaller
+        a(nChildren - 1) = new Array[Double]((length % childSize).toInt)
+      }
       a.toIndexedSeq
     }
   }
-
-  override val children: IndexedSeq[Array[Double]] = getChildren
 
   def get(i: Long): Double = children(getChildId(i))(getChildInternalId(i))
 
@@ -88,17 +91,13 @@ class BigVector (_length: Long, _children: IndexedSeq[Array[Double]] = null) ext
 
   override def clone(): BigVector = {
     val a = new Array[Array[Double]](nChildren)
-    var i = 0
-    while (i < a.length) {
+    for (i <- a.indices) {
       val src = children(i)
       val b = new Array[Double](src.length)
-      var j = 0
-      while (j < b.length) {
+      for (j <- b.indices) {
         b(j) = src(j)
-        j += 1
       }
       a(i) = b
-      i += 1
     }
     new BigVector(length, _children = a.toIndexedSeq)
   }

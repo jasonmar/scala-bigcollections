@@ -25,25 +25,26 @@ class BigBitMap (_length: Long, initialValue: Byte = 0, _children: Array[BitMap]
     if (_children != null) {
       // Allow construction from preallocated sub-arrays
       if (_children.length == nChildren) {
-        // TODO add size validation
+        verifyChildSizes(_children.map{_.length.toInt})
         _children
       } else {
         throw new IllegalArgumentException
       }
     } else {
       val a = new Array[BitMap](nChildren)
-      var i = 0
-      while (i < nChildren - 1) {
-        a(i) = new BitMap(Int.MaxValue, initialValue)
-        i += 1
-      }
-      if (length > Int.MaxValue) {
-        val size = (length % Int.MaxValue).toInt
-        a(i) = new BitMap(size, initialValue)
-      } else {
-        a(i) = new BitMap(length, initialValue)
-      }
 
+      if (length <= childSize) {
+        // Only need one BitMap
+        a(0) = new BitMap(length.toInt)
+      } else {
+        for (i <- 0 to nChildren - 2) {
+          // Allocate full size BitMap
+          a(i) = new BitMap(childSize.toInt)
+        }
+        // Last BitMap may be smaller
+        a(nChildren - 1) = new BitMap((length % childSize).toInt)
+      }
+      a.toIndexedSeq
       a
     }
   }
@@ -153,11 +154,9 @@ class BigBitMap (_length: Long, initialValue: Byte = 0, _children: Array[BitMap]
   }
 
   override def clone: BigBitMap = {
-    val a = new Array[BitMap](children.length)
-    var i = 0
-    while (i < a.length) {
+    val a = new Array[BitMap](nChildren)
+    for (i <- a.indices) {
       a(i) = children(i).clone
-      i += 1
     }
     new BigBitMap(length, _children = a)
   }

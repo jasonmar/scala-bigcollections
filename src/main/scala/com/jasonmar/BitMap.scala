@@ -21,36 +21,21 @@ import java.nio.ByteBuffer
 
 class BitMap (_length: Long, initialValue: Byte = 0, _buf: ByteBuffer = null) extends BigCollection {
 
-  override val length = _length
-
-  override val nChildren: Int = getByteCount(length)
-
-  def getBuf: ByteBuffer = {
+  val buf: ByteBuffer = {
     if (_buf != null) {
-      if (_buf.capacity == nChildren) _buf
+      if (_buf.capacity <= nChildren) _buf
       else throw new IllegalArgumentException
     } else {
       ByteUtil.getByteBuffer(nChildren, initialValue)
     }
   }
 
-  val buf = getBuf
+  override val length = {
+    assert(((_length >> 3) < (Int.MaxValue - 8)) && _length < 8)
+    _length
+  }
 
   override val children: Array[Byte] = buf.array()
-
-  override def getChildInternalId(i: Long): Int = {
-    checkBounds(i)
-    if (i < 8L) 0
-    else {
-      (i >> 3).toInt
-    }
-  }
-
-  def getByteCount(nBits: Long): Int = {
-    if (nBits > Int.MaxValue * 8L) throw new IllegalArgumentException
-    else if (nBits <= 0L) throw new IllegalArgumentException
-    else ((nBits - 1L >> 3) + 1L).toInt
-  }
 
   def scard: Long = {
     var byteId = 0
